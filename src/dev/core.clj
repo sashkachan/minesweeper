@@ -9,7 +9,7 @@
                          (ring.adapter.jetty/run-jetty routesfn {:port 8080 :join? false})))
   server)
 
-(defn cleanup-refresh []
+(defn cleanup-refresh [routesfn]
   (.stop @server)
   (reset! server nil)
-  (run))
+  (run routesfn))

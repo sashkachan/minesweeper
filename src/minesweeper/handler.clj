@@ -1,11 +1,9 @@
 (ns minesweeper.handler
-  (:require [clojure.tools.namespace.repl :refer [refresh]]
-            [compojure.route :refer [resources not-found]]
+  (:require [compojure.route :refer [resources not-found]]
             ring.adapter.jetty
-            [net.cgrand.enlive-html :as enlive]
-            [compojure.core :refer [GET defroutes]]
-            [clojure.java.io :as io]))
+            [compojure.core :refer [GET defroutes]]))
 
 (defroutes site
-  (GET "/" [] "Hello World")
+  (resources "/")
   (not-found "Not Found"))
+
