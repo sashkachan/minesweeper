@@ -36,5 +36,10 @@
 
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
-  [size])
+  [size spec]
+  (let [chosen (first (filter #(= (:size %) size) spec))]
+    (if (nil? chosen)
+      (throw (new IllegalArgumentException)))))
+
+;; (first  (filter #(= (:size %1) 72) [{:size 5} {:size 7}]))
 
