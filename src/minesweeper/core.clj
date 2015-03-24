@@ -1,15 +1,16 @@
 (ns minesweeper.core
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
-            [taoensso.carmine :as car]))
+            [taoensso.carmine :as car]
+            [minesweeper.helpers :as help]))
 
 ;; todo: move 
 (def conn {:pool {} :spec {:host "127.0.0.1" :port 6379}})
 (defmacro wcar* [& body] `(car/wcar conn ~@body))
 
-(def field-options [{:size 9 :bombs 3}
-                    {:size 81 :bombs 27}
-                    {:size 256 :bombs 99}])
+(def field-options [{:size [3 3] :bombs 3}
+                    {:size [9 9] :bombs 27}
+                    {:size [16 16] :bombs 99}])
 
 (defroutes app
   (POST "/move" [] "")
@@ -36,10 +37,13 @@
 
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
-  [size spec]
-  (let [chosen (first (filter #(= (:size %) size) spec))]
+  [dim spec]
+  (let [size (apply * dim)
+        chosen (help/find-first #(= (:size %) dim) spec)]
+    (println chosen)
     (if (nil? chosen)
-      (throw (new IllegalArgumentException)))))
+      (throw (new IllegalArgumentException))
+      (help/get-unique-rand-pair-coll chosen (apply max dim)))))
 
-;; (first  (filter #(= (:size %1) 72) [{:size 5} {:size 7}]))
+;;(generate-minefield [9 9] field-options)
 
