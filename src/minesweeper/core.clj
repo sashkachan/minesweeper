@@ -43,7 +43,5 @@
     (println chosen)
     (if (nil? chosen)
       (throw (new IllegalArgumentException))
-      (help/get-unique-rand-pair-coll chosen (apply max dim)))))
-
-;;(generate-minefield [9 9] field-options)
+      (help/get-unique-rand-pair-coll (:bombs chosen) (apply max dim)))))
 
