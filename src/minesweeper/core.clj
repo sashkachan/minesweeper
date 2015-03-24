@@ -38,10 +38,7 @@
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
   [dim spec]
-  (let [size (apply * dim)
-        chosen (help/find-first #(= (:size %) dim) spec)]
-    (println chosen)
-    (if (nil? chosen)
-      (throw (new IllegalArgumentException))
-      (help/get-unique-rand-pair-coll (:bombs chosen) (apply max dim)))))
+  (if-let [chosen (help/find-first #(= (:size %) dim) spec)]
+    (help/get-unique-rand-pair-coll (:bombs chosen) (apply max dim))
+    (throw (new IllegalArgumentException))))
 
