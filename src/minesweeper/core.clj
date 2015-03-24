@@ -17,11 +17,40 @@
   (GET "/startgame" [] "")
   (route/not-found ""))
 
+
+(defn cell [dim is-bomb]
+  {:coord dim
+   :is-bomb is-bomb})
+
 ;; flipped: [[1 1] [1 2] [1 3] ... ]
 ;; bombs: [[1 1]]
 (defn game-start
   "Returns new field with randomly generated bombs"
-  [size])
+  [[x y] spec]
+  (if-let [minefield (generate-minefield [x y] spec)]
+    (let [field (for [xc (range x) yc (range y)
+                      :let [is-bomb (not (nil? (help/find-first #(= [xc yc] %) minefield)))]]
+                  (cell [xc yc] is-bomb))]
+      )))
+
+(defn get-neighbours [[x y] xmax ymax]
+  (for [xc [(- x 1) x (+ x 1)]
+        yc [(- y 1) y (+ y 1)]
+        :when (and (not (and (= xc x) (= yc y)))
+                   (>= xc 0)
+                   (>= yc 0)
+                   (< xc xmax)
+                   (< yc ymax))]
+    [xc yc]))
+
+;; [{:coord [0 0]
+;;   :bomb true
+;;   :number nil
+;;   :visible false}
+;;  {:coord [1 0]
+;;   :bomb true
+;;   :number 1
+;;   :visible false} ... ]
 
 (defn flip-cells
   "Flips affected cells when a move is made"

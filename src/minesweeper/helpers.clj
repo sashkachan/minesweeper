@@ -5,7 +5,8 @@
 
 (defn get-rand-pair [limit]
   (let [rand-num (partial rand-int limit)]
-    (cons (vector (rand-num) (rand-num)) (lazy-seq (get-rand-pair limit)))))
+    (cons (vector (rand-num) (rand-num))
+          (lazy-seq (get-rand-pair limit)))))
 
 (defn get-unique-rand-pair-coll
   ([total up-bound]

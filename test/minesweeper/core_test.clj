@@ -14,4 +14,8 @@
           bombs (mscore/generate-minefield [9 9] spec)]
       (is (= 27 (count bombs))))))
 
-
+(deftest test-neighbour-fn
+  (testing "Returns non-empty seq"
+    (is (= true (seq? (mscore/get-neighbours [3 3] 3 7)))))
+  (testing "Exactly 3 neighbours"
+    (is (= 3 (count (mscore/get-neighbours [0 0] 2 2))))))
