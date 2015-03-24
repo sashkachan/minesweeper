@@ -16,6 +16,6 @@
 
 (deftest test-neighbour-fn
   (testing "Returns non-empty seq"
-    (is (= true (seq? (mscore/get-neighbours [3 3] 3 7)))))
+    (is (= true (seq? (mscore/get-neighbours-wmax [3 7] [3 3])))))
   (testing "Exactly 3 neighbours"
-    (is (= 3 (count (mscore/get-neighbours [0 0] 2 2))))))
+    (is (= 3 (count (mscore/get-neighbours-wmax [2 2] [0 0]))))))

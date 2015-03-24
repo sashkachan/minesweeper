@@ -8,9 +8,9 @@
 (def conn {:pool {} :spec {:host "127.0.0.1" :port 6379}})
 (defmacro wcar* [& body] `(car/wcar conn ~@body))
 
-(def field-options [{:size [3 3] :bombs 3}
-                    {:size [9 9] :bombs 27}
-                    {:size [16 16] :bombs 99}])
+(def field-options {:easy {:size [3 3] :bombs 3}
+                    :medium {:size [9 9] :bombs 27}
+                    :hard {:size [16 16] :bombs 99}})
 
 (defroutes app
   (POST "/move" [] "")
@@ -18,22 +18,12 @@
   (route/not-found ""))
 
 
-(defn cell [dim is-bomb]
+(defn cell [dim is-bomb number]
   {:coord dim
-   :is-bomb is-bomb})
+   :is-bomb is-bomb
+   :number number})
 
-;; flipped: [[1 1] [1 2] [1 3] ... ]
-;; bombs: [[1 1]]
-(defn game-start
-  "Returns new field with randomly generated bombs"
-  [[x y] spec]
-  (if-let [minefield (generate-minefield [x y] spec)]
-    (let [field (for [xc (range x) yc (range y)
-                      :let [is-bomb (not (nil? (help/find-first #(= [xc yc] %) minefield)))]]
-                  (cell [xc yc] is-bomb))]
-      )))
-
-(defn get-neighbours [[x y] xmax ymax]
+(defn get-neighbours-wmax [[xmax ymax] [x y]]
   (for [xc [(- x 1) x (+ x 1)]
         yc [(- y 1) y (+ y 1)]
         :when (and (not (and (= xc x) (= yc y)))
@@ -42,15 +32,6 @@
                    (< xc xmax)
                    (< yc ymax))]
     [xc yc]))
-
-;; [{:coord [0 0]
-;;   :bomb true
-;;   :number nil
-;;   :visible false}
-;;  {:coord [1 0]
-;;   :bomb true
-;;   :number 1
-;;   :visible false} ... ]
 
 (defn flip-cells
   "Flips affected cells when a move is made"
@@ -66,8 +47,24 @@
 
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
-  [dim spec]
-  (if-let [chosen (help/find-first #(= (:size %) dim) spec)]
-    (help/get-unique-rand-pair-coll (:bombs chosen) (apply max dim))
+  [dim bombs-count]
+  (if (> bombs-count 0)
+    (help/get-unique-rand-pair-coll bombs-count (apply max dim))
     (throw (new IllegalArgumentException))))
+
+(defn game-start
+  "Returns new field with randomly generated bombs"
+  [{[x y] :size :as spec}]
+  (if-let [minefield (generate-minefield [x y] (:bombs spec))]
+    (let [get-neighbours (partial get-neighbours-wmax (:size spec))
+          is-bomb? (fn [dim] (not (nil? (help/find-first #(= dim %) minefield))))]
+      (for [xc (range x) yc (range y)
+            :let [dim [xc yc]]]
+        (if (is-bomb? dim)
+          (cell dim true nil)
+          (cell dim false (->> (get-neighbours dim)
+                               (filter is-bomb?)
+                               (count))))))))
+
+;;(println (game-start (:easy field-options)))
 
