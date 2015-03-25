@@ -19,3 +19,9 @@
     (is (= true (seq? (mscore/get-neighbours-wmax [3 7] [3 3])))))
   (testing "Exactly 3 neighbours"
     (is (= 3 (count (mscore/get-neighbours-wmax [2 2] [0 0]))))))
+
+(deftest test-game-generated
+  (testing "With bad spec"
+    (is (thrown? IllegalArgumentException (mscore/game-start {:wonky "spec"}))))
+  (testing "Good spec"
+    (is (= (* 9 9) (count (mscore/game-start {:size [9 9] :bombs 27}))))))

@@ -43,8 +43,6 @@
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
   [[x y :as dim] bombs-count]
-  (println bombs-count)
-  (println dim)
   (if (and (number? bombs-count) (> bombs-count 0) (number? x) (number? y))
     (help/get-unique-rand-pair-coll bombs-count (apply max [x y]))
     (throw (new IllegalArgumentException))))
@@ -56,12 +54,13 @@
      (let [get-neighbours (partial get-neighbours-wmax (:size spec))
            is-bomb? (fn [dim] (not (nil? (help/find-first #(= dim %) minefield))))]
        (for [xc (range x) yc (range y)
-             :let [dim [xc yc]]]
-         (if (is-bomb? dim)
-           (cell dim true nil)
-           (cell dim false (->> (get-neighbours dim)
-                                (filter is-bomb?)
-                                (count)))))))))
+             :let [coord [xc yc]]]
+         (if (is-bomb? coord)
+           (cell coord true nil)
+           (cell coord false (->> (get-neighbours coord)
+                                  (filter is-bomb?)
+                                  (count))))))
+     (throw (new IllegalArgumentException)))))
 
 (defn wrap-response [body]
   (json/write-str {:result body}))
