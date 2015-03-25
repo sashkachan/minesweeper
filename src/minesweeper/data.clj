@@ -7,5 +7,7 @@
 (def conn {:pool {} :spec {:host "127.0.0.1" :port 6379}})
 (defmacro wcar* [& body] `(car/wcar conn ~@body))
 
-(defn store-game [game uuid]
-  (wcar* (car/set (str/join ["game" "-" uuid]) (json/write-str game))))
+(defn store-game [uid game]
+  (let [game-id (str/join ["game" "-" uuid])]
+    (wcar* (car/set game-id (json/write-str game)))
+    game-id))

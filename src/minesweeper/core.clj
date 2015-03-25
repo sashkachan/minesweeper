@@ -16,7 +16,8 @@
 (defn cell [dim is-bomb number]
   {:coord dim
    :is-bomb is-bomb
-   :number number})
+   :number number
+   :flipped false})
 
 (defn get-neighbours-wmax [[xmax ymax] [x y]]
   (for [xc [(- x 1) x (+ x 1)]
@@ -27,14 +28,6 @@
                    (< xc xmax)
                    (< yc ymax))]
     [xc yc]))
-
-(defn flip-cells
-  "Flips affected cells when a move is made"
-  [uid move])
-
-(defn make-a-move
-  "Higher level function that calculates changes upon a move"
-  [uid move])
 
 (defn game-over
   "Checks if the game is over one way or another"
@@ -62,6 +55,31 @@
                                   (count))))))
      (throw (new IllegalArgumentException)))))
 
+(defn get-board-max [board]
+  (let [coords (map vector (map #(:coord %) board))]
+    (vector (apply max (first coords)) (apply max (second coords)))))
+
+(defn make-a-move
+  [board move]
+  (let [el (help/find-first #(= move (:coord %)) board)]
+    (when (true? (:is-bomb el))
+      (throw (new IllegalArgumentException)))
+    (when (= 0 (:number el))
+      (let [neighbours (get-neighbours-wmax (get-board-max board))]
+        ;; todo: return board with cells flipped
+        ))))
+
+(defn wrap-game
+  ([game]
+   (wrap-game game '()))
+  ([game moves]
+   (let [masq (reduce (fn [board move]
+                        (if (empty? move)
+                          board
+                          (make-a-move board move)))
+                      game moves)])
+))
+
 (defn wrap-response [body]
   (json/write-str {:result body}))
 
@@ -69,11 +87,15 @@
   :available-media-types ["application/json"]
   :handle-ok (fn [_] (wrap-response 
                      (if-let [spec ((keyword level) field-options)]
-                       (game-start spec)
+                       (let [game (game-start spec)
+                             uid (help/get-uuid)]
+                         (data/store-game uid  game)
+                         {:uid uid :flipped {}}
+                         )
                        {:error "No such level"}))))
 
 (defroutes app
   (POST "/move" [] (resource :available-media-types ["text/html"]
-                           :handle-ok  "Not implemented"))
+                             :handle-ok  "Not implemented"))
   (GET "/game-start/:level" [level] (game-start-res level))
   (route/not-found "404"))
