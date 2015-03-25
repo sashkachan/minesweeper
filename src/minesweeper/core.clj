@@ -2,20 +2,16 @@
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [taoensso.carmine :as car]
-            [minesweeper.helpers :as help]))
+            [minesweeper.helpers :as help]
+            [clojure.string :as str]
+            [clojure.data.json :as json]
+            [minesweeper.data :as data]
+            [liberator.core :refer [defresource resource]]))
 
-;; todo: move 
-(def conn {:pool {} :spec {:host "127.0.0.1" :port 6379}})
-(defmacro wcar* [& body] `(car/wcar conn ~@body))
-
+;; todo: create config
 (def field-options {:easy {:size [3 3] :bombs 3}
                     :medium {:size [9 9] :bombs 27}
                     :hard {:size [16 16] :bombs 99}})
-
-(defroutes app
-  (POST "/move" [] "")
-  (GET "/startgame" [] "")
-  (route/not-found ""))
 
 (defn cell [dim is-bomb number]
   {:coord dim
@@ -55,17 +51,30 @@
 
 (defn game-start
   "Returns new field with randomly generated bombs"
-  [{[x y] :size :as spec}]
-  (if-let [minefield (generate-minefield [x y] (:bombs spec))]
-    (let [get-neighbours (partial get-neighbours-wmax (:size spec))
-          is-bomb? (fn [dim] (not (nil? (help/find-first #(= dim %) minefield))))]
-      (for [xc (range x) yc (range y)
-            :let [dim [xc yc]]]
-        (if (is-bomb? dim)
-          (cell dim true nil)
-          (cell dim false (->> (get-neighbours dim)
-                               (filter is-bomb?)
-                               (count))))))))
+  ([{[x y] :size :as spec}]
+   (if-let [minefield (generate-minefield [x y] (:bombs spec))]
+     (let [get-neighbours (partial get-neighbours-wmax (:size spec))
+           is-bomb? (fn [dim] (not (nil? (help/find-first #(= dim %) minefield))))]
+       (for [xc (range x) yc (range y)
+             :let [dim [xc yc]]]
+         (if (is-bomb? dim)
+           (cell dim true nil)
+           (cell dim false (->> (get-neighbours dim)
+                                (filter is-bomb?)
+                                (count)))))))))
 
-(defn store-game [game uuid]
-  (wcar* ()))
+(defn wrap-response [body]
+  (json/write-str {:result body}))
+
+(defresource game-start-res [level]
+  :available-media-types ["application/json"]
+  :handle-ok (fn [_] (wrap-response 
+                     (if-let [spec ((keyword level) field-options)]
+                       (game-start spec)
+                       {:error "No such level"}))))
+
+(defroutes app
+  (POST "/move" [] (resource :available-media-types ["text/html"]
+                           :handle-ok  "Not implemented"))
+  (GET "/game-start/:level" [level] (game-start-res level))
+  (route/not-found "404"))
