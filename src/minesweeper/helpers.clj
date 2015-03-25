@@ -19,5 +19,5 @@
          (get-unique-rand-pair-coll total up-bound aggr)
          (get-unique-rand-pair-coll total up-bound (into aggr [new-pair])))))))
 
-
-
+(defn get-uuid []
+  (str (java.util.UUID/randomUUID)))

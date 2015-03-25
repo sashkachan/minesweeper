@@ -17,7 +17,6 @@
   (GET "/startgame" [] "")
   (route/not-found ""))
 
-
 (defn cell [dim is-bomb number]
   {:coord dim
    :is-bomb is-bomb
@@ -47,9 +46,11 @@
 
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
-  [dim bombs-count]
-  (if (> bombs-count 0)
-    (help/get-unique-rand-pair-coll bombs-count (apply max dim))
+  [[x y :as dim] bombs-count]
+  (println bombs-count)
+  (println dim)
+  (if (and (number? bombs-count) (> bombs-count 0) (number? x) (number? y))
+    (help/get-unique-rand-pair-coll bombs-count (apply max [x y]))
     (throw (new IllegalArgumentException))))
 
 (defn game-start
@@ -66,5 +67,5 @@
                                (filter is-bomb?)
                                (count))))))))
 
-;;(println (game-start (:easy field-options)))
-
+(defn store-game [game uuid]
+  (wcar* ()))

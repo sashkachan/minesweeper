@@ -7,5 +7,6 @@
                  [compojure "1.3.2"]
                  [liberator "0.10.0"]
                  [ring "1.2.2"]
-                 [com.taoensso/carmine "2.9.0"]]
+                 [com.taoensso/carmine "2.9.0"]
+                 [org.clojure/data.json "0.2.6"]]
   :plugins [[lein-ring "0.8.13"]])
