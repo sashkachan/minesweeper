@@ -9,15 +9,14 @@
             [liberator.core :refer [defresource resource]]))
 
 ;; todo: create config
-(def field-options {:easy {:size [3 3] :bombs 3}
-                    :medium {:size [9 9] :bombs 27}
-                    :hard {:size [16 16] :bombs 99}})
+(def field-options {:easy {:size [9 9] :bombs 10}
+                    :medium {:size [16 16] :bombs 40}
+                    :hard {:size [16 30] :bombs 99}})
 
 (defn cell [dim is-bomb number]
   {:coord dim
    :is-bomb is-bomb
-   :number number
-   :flipped false})
+   :number number})
 
 (defn get-neighbours-wmax [[xmax ymax] [x y]]
   (for [xc [(- x 1) x (+ x 1)]
@@ -29,9 +28,17 @@
                    (< yc ymax))]
     [xc yc]))
 
-(defn game-over
+(defn get-cell [board dim]
+  (help/find-first #(= (:coord %) dim) board))
+
+(defn has-bomb? [board dim]
+  (= true (:is-bomb (get-cell board dim))))
+
+(defn game-over?
   "Checks if the game is over one way or another"
-  [uid move])
+  [board move]
+  (when (has-bomb? board move)
+    true))
 
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
@@ -64,34 +71,43 @@
   (let [el (help/find-first #(= move (:coord %)) board)]
     (when (true? (:is-bomb el))
       (throw (new IllegalArgumentException)))
-    (when (= 0 (:number el))
-      (let [neighbours (get-neighbours-wmax (get-board-max board))]
-        ;; todo: return board with cells flipped
-        ))))
+    ;; (if (= 0 (:number el))
+    ;;   (let [neighbours (get-neighbours-wmax (get-board-max board))]
+    ;;     ;; todo: return board with cells flipped
+        
+    ;;     ))
+    
+    ))
 
-(defn wrap-game
+(defn wrap-game [board flipped]
+  (map (fn [{dim :coord}]
+         (let [board-cell (get-cell board dim)
+               flipped (not (nil? (help/find-first #(= dim %) flipped)))
+               bomb (if flipped (:is-bomb board-cell) nil)
+               number (if flipped (:is-bomb board-cell) nil)]
+           (cell dim bomb number))) board))
+
+
+(defn handle-move
   ([game]
-   (wrap-game game '()))
-  ([game moves]
-   (let [masq (reduce (fn [board move]
-                        (if (empty? move)
-                          board
-                          (make-a-move board move)))
-                      game moves)])
-))
+   (handle-move game '()))
+  ([game move]
+   (when (game-over? game move)
+     (wrap-game [game (map #(:coord %) game)]))
+   ;; todo: make a move func
+   ))
 
 (defn wrap-response [body]
   (json/write-str {:result body}))
 
 (defresource game-start-res [level]
   :available-media-types ["application/json"]
-  :handle-ok (fn [_] (wrap-response 
+  :handle-ok (fn [_] (wrap-response
                      (if-let [spec ((keyword level) field-options)]
                        (let [game (game-start spec)
                              uid (help/get-uuid)]
-                         (data/store-game uid  game)
-                         {:uid uid :flipped {}}
-                         )
+                         (data/store-game uid game)
+                         {:uid uid :game (wrap-game game [])})
                        {:error "No such level"}))))
 
 (defroutes app
