@@ -70,28 +70,37 @@
                number (if flipped (:is-bomb board-cell) nil)]
            (cell dim bomb number))) board))
 
-(defn get-board-max [board]
-  (let [coords (map vector (map #(:coord %) board))]
-    (vector (apply max (first coords)) (apply max (second coords)))))
+(defn get-board-size [board]
+  (let [coords (apply map vector (map #(:coord %) board))]
+    (vector (inc (apply max (first coords))) (inc (apply max (second coords))))))
 
 (defn open-region
   ([game move]
-   (open-region game move []))
-  ([game move aggr]
-   (let [neighbours (get-neighbours-wmax (get-board-max game) move)
-         empty-neighbours (filter #(= 0 (:number %)) neighbours)
-         opened-region (filter #(= 0 (:is-bomb %)) neighbours)]
-     ;; todo: recursively call open-region with unprocessed neighbouring cells
-     )))
+   (open-region [] game move))
+  ([opened game move]
+   (println move)
+   (let [cell-empty (= 0 (:number (get-cell game move)))
+         get-neighbours (partial get-neighbours-wmax (get-board-size game))
+         neighbours (get-neighbours move)
+         unprocessed-neighbours (filter
+                                 (fn [el] (not-any? (fn [el2] (= el el2)) opened))
+                                 (filter (fn [el]
+                                           (= 0 (:number (get-cell game move))))
+                                         neighbours))]
+     (if (or (empty? unprocessed-neighbours)
+             (not cell-empty))
+       (into opened (vector move))
+       (open-region (into opened (vector move))
+                    game
+                    (first unprocessed-neighbours))))))
 
 (defn handle-move
   ([game]
    (handle-move game '()))
   ([game move]
-   (when (game-over? game move)
-     (wrap-game game (map #(:coord %) game)))
-   
-   ))
+   (if (game-over? game move)
+     (wrap-game game (map #(:coord %) game))
+     (wrap-game game (open-region game move)))))
 
 (defn wrap-response [body]
   (json/write-str {:result body}))
