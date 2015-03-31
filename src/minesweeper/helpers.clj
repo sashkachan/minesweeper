@@ -3,6 +3,9 @@
 (defn find-first [f coll]
   (first (filter f coll)))
 
+(defn not-in? [coll el]
+  (not-any? #(= % el) coll))
+
 (defn get-rand-pair [limit]
   (let [rand-num (partial rand-int limit)]
     (cons (vector (rand-num) (rand-num))

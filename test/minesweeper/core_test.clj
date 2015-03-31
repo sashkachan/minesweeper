@@ -29,7 +29,13 @@
 (deftest test-open-region
   (testing "Region is opened when hit an empty cell"
     (let [game [{:coord [0 0], :is-bomb false, :number 0}
-                {:coord [0 1], :is-bomb false, :number 0}
-                {:coord [0 2], :is-bomb false, :number 1}]]
-      (is (= [0 0])
-          (mscore/open-region game [0 1])))))
+                {:coord [0 1], :is-bomb false, :number 1}
+                {:coord [0 2], :is-bomb false, :number 1}
+                {:coord [1 0], :is-bomb false, :number 0}
+                {:coord [1 1], :is-bomb false, :number 1}
+                {:coord [1 2], :is-bomb true, :number nil}
+                {:coord [2 0], :is-bomb false, :number 0}
+                {:coord [2 1], :is-bomb false, :number 1}
+                {:coord [2 2], :is-bomb false, :number 1}]
+          opened (mscore/open-region game [1 0])]
+      (is (= 6 (count opened))))))

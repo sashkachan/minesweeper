@@ -62,13 +62,15 @@
                                   (count))))))
      (throw (new IllegalArgumentException)))))
 
-(defn wrap-game [board flipped]
-  (map (fn [{dim :coord}]
-         (let [board-cell (get-cell board dim)
-               flipped (not (nil? (help/find-first #(= dim %) flipped)))
-               bomb (if flipped (:is-bomb board-cell) nil)
-               number (if flipped (:is-bomb board-cell) nil)]
-           (cell dim bomb number))) board))
+(defn wrap-game [board flipped move game-over?]
+  {:move move
+   :game (map (fn [{dim :coord}]
+                 (let [board-cell (get-cell board dim)
+                       flipped (not (nil? (help/find-first #(= dim %) flipped)))
+                       bomb (if flipped (:is-bomb board-cell) nil)
+                       number (if flipped (:is-bomb board-cell) nil)]
+                   (cell dim bomb number))) board)
+   :game-over game-over?})
 
 (defn get-board-size [board]
   (let [coords (apply map vector (map #(:coord %) board))]
@@ -76,21 +78,20 @@
 
 (defn open-region
   ([game move]
-   (open-region [] game move))
-  ([opened game move]
-   (println move)
-   (let [cell-empty (= 0 (:number (get-cell game move)))
-         get-neighbours (partial get-neighbours-wmax (get-board-size game))
-         neighbours (get-neighbours move)
-         unprocessed-neighbours (filter
-                                 (fn [el] (not-any? (fn [el2] (= el el2)) opened))
-                                 (filter (fn [el]
-                                           (= 0 (:number (get-cell game move))))
-                                         neighbours))]
+   (open-region [] [] game move))
+  ([opened unprocessed game move]
+   (let [is-zero-cell (fn [cell] (= 0 (:number (get-cell game cell))))
+         not-in-opened (partial filter (partial help/not-in? opened))
+         neighbours (not-in-opened (get-neighbours-wmax (get-board-size game) move))
+         unprocessed-neighbours (concat unprocessed
+                                        (filter is-zero-cell neighbours))
+         opened-cells (concat (not-in-opened neighbours)
+                              opened)]
      (if (or (empty? unprocessed-neighbours)
-             (not cell-empty))
-       (into opened (vector move))
-       (open-region (into opened (vector move))
+             (not (is-zero-cell move)))
+       opened-cells
+       (open-region opened-cells
+                    (rest unprocessed-neighbours)
                     game
                     (first unprocessed-neighbours))))))
 
@@ -99,8 +100,8 @@
    (handle-move game '()))
   ([game move]
    (if (game-over? game move)
-     (wrap-game game (map #(:coord %) game))
-     (wrap-game game (open-region game move)))))
+     (wrap-game game (map #(:coord %) game) move true)
+     (wrap-game game (open-region game move) move false))))
 
 (defn wrap-response [body]
   (json/write-str {:result body}))
