@@ -89,7 +89,8 @@
                               opened)]
      (cond
        (and (= (count opened) 0) (not (is-zero-cell move))) (vector move)
-       (or (empty? unprocessed-neighbours) (not (is-zero-cell move))) opened-cells
+       (not (is-zero-cell move)) (concat (vector move) opened)
+       (empty? unprocessed-neighbours) opened-cells
        :else (open-region opened-cells
                           (rest unprocessed-neighbours)
                           game
