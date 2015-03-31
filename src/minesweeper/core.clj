@@ -62,23 +62,6 @@
                                   (count))))))
      (throw (new IllegalArgumentException)))))
 
-(defn get-board-max [board]
-  (let [coords (map vector (map #(:coord %) board))]
-    (vector (apply max (first coords)) (apply max (second coords)))))
-
-(defn make-a-move
-  [board move]
-  (let [el (help/find-first #(= move (:coord %)) board)]
-    (when (true? (:is-bomb el))
-      (throw (new IllegalArgumentException)))
-    ;; (if (= 0 (:number el))
-    ;;   (let [neighbours (get-neighbours-wmax (get-board-max board))]
-    ;;     ;; todo: return board with cells flipped
-        
-    ;;     ))
-    
-    ))
-
 (defn wrap-game [board flipped]
   (map (fn [{dim :coord}]
          (let [board-cell (get-cell board dim)
@@ -87,14 +70,27 @@
                number (if flipped (:is-bomb board-cell) nil)]
            (cell dim bomb number))) board))
 
+(defn get-board-max [board]
+  (let [coords (map vector (map #(:coord %) board))]
+    (vector (apply max (first coords)) (apply max (second coords)))))
+
+(defn open-region
+  ([game move]
+   (open-region game move []))
+  ([game move aggr]
+   (let [neighbours (get-neighbours-wmax (get-board-max game) move)
+         empty-neighbours (filter #(= 0 (:number %)) neighbours)
+         opened-region (filter #(= 0 (:is-bomb %)) neighbours)]
+     ;; todo: recursively call open-region with unprocessed neighbouring cells
+     )))
 
 (defn handle-move
   ([game]
    (handle-move game '()))
   ([game move]
    (when (game-over? game move)
-     (wrap-game [game (map #(:coord %) game)]))
-   ;; todo: make a move func
+     (wrap-game game (map #(:coord %) game)))
+   
    ))
 
 (defn wrap-response [body]
