@@ -87,13 +87,13 @@
                                         (filter is-zero-cell neighbours))
          opened-cells (concat (not-in-opened neighbours)
                               opened)]
-     (if (or (empty? unprocessed-neighbours)
-             (not (is-zero-cell move)))
-       opened-cells
-       (open-region opened-cells
-                    (rest unprocessed-neighbours)
-                    game
-                    (first unprocessed-neighbours))))))
+     (cond
+       (and (= (count opened) 0) (not (is-zero-cell move))) (vector move)
+       (or (empty? unprocessed-neighbours) (not (is-zero-cell move))) opened-cells
+       :else (open-region opened-cells
+                          (rest unprocessed-neighbours)
+                          game
+                          (first unprocessed-neighbours))))))
 
 (defn handle-move
   ([game]
