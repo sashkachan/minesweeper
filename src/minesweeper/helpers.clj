@@ -3,8 +3,11 @@
 (defn find-first [f coll]
   (first (filter f coll)))
 
+(defn in? [coll el]
+  (some? #(= % el) coll))
+
 (defn not-in? [coll el]
-  (not-any? #(= % el) coll))
+  (not (in? coll el)))
 
 (defn get-rand-pair [limit]
   (let [rand-num (partial rand-int limit)]
@@ -24,3 +27,5 @@
 
 (defn get-uuid []
   (str (java.util.UUID/randomUUID)))
+
+

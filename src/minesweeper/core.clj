@@ -6,7 +6,7 @@
             [clojure.string :as str]
             [clojure.data.json :as json]
             [minesweeper.data :as data]
-            [liberator.core :refer [defresource resource]]))
+            [ring.middleware.params :refer [wrap-params]]))
 
 ;; todo: create config
 (def field-options {:easy {:size [9 9] :bombs 10}
@@ -36,9 +36,13 @@
 
 (defn game-over?
   "Checks if the game is over one way or another"
-  [board move]
-  (when (has-bomb? board move)
+  [game move]
+  (when (or (has-bomb? game move)
+            (nil? (help/find-first #(nil? (:number %)) game)))
     true))
+
+(defn attach-flipped-cells [game flipped]
+  (map (fn [el] (assoc el :flipped (help/in? flipped el)))))
 
 (defn generate-minefield
   "Returns randomly generated positions of mines on a field"
@@ -62,68 +66,69 @@
                                   (count))))))
      (throw (new IllegalArgumentException)))))
 
-(defn wrap-game [board flipped move game-over?]
-  {:move move
-   :game (map (fn [{dim :coord}]
-                 (let [board-cell (get-cell board dim)
-                       flipped (not (nil? (help/find-first #(= dim %) flipped)))
-                       bomb (if flipped (:is-bomb board-cell) nil)
-                       number (if flipped (:is-bomb board-cell) nil)]
-                   (cell dim bomb number))) board)
-   :game-over game-over?})
+(defn wrap-game [board flipped]
+  (map (fn [{dim :coord}]
+         (let [board-cell (get-cell board dim)
+               flipped (not (nil? (help/find-first #(= dim %) flipped)))
+               bomb (if flipped (:is-bomb board-cell) nil)
+               number (if flipped (:is-bomb board-cell) nil)]
+           (cell dim bomb number))) board))
 
 (defn get-board-size [board]
   (let [coords (apply map vector (map #(:coord %) board))]
+    (println coords)
     (vector (inc (apply max (first coords))) (inc (apply max (second coords))))))
 
 (defn open-region
   ([game move]
    (open-region [] [] game move))
-  ([opened unprocessed game move]
+  ([aggr-opened unprocessed game move]
    (let [is-zero-cell (fn [cell] (= 0 (:number (get-cell game cell))))
-         not-in-opened (partial filter (partial help/not-in? opened))
+         not-in-opened (partial filter (partial help/not-in? aggr-opened))
          neighbours (not-in-opened (get-neighbours-wmax (get-board-size game) move))
-         unprocessed-neighbours (concat unprocessed
+         new-unprocessed-zeroes (concat unprocessed
                                         (filter is-zero-cell neighbours))
-         opened-cells (concat (not-in-opened neighbours)
-                              opened)]
-  
+         all-open-cells (concat (not-in-opened neighbours)
+                              aggr-opened)]
      (cond
-       (and (= (count opened) 0) (not (is-zero-cell move))) (vector move)
-       (empty? unprocessed-neighbours) opened-cells
+       (and (= (count aggr-opened) 0) (not (is-zero-cell move))) (vector move)
+       (empty? new-unprocessed-zeroes) all-open-cells
        :else (if (not (is-zero-cell move))
-               (open-region opened
+               (open-region aggr-opened
                             (rest unprocessed)
                             game
                             (first unprocessed))
-               (open-region opened-cells
-                            (rest unprocessed-neighbours)
+               (open-region all-open-cells
+                            (rest new-unprocessed-zeroes)
                             game
-                            (first unprocessed-neighbours)))))))
-
-(defn handle-move
-  ([game]
-   (handle-move game '()))
-  ([game move]
-   (if (game-over? game move)
-     (wrap-game game (map #(:coord %) game) move true)
-     (wrap-game game (open-region game move) move false))))
+                            (first new-unprocessed-zeroes)))))))
 
 (defn wrap-response [body]
   (json/write-str {:result body}))
 
-(defresource game-start-res [level]
-  :available-media-types ["application/json"]
-  :handle-ok (fn [_] (wrap-response
-                     (if-let [spec ((keyword level) field-options)]
-                       (let [game (game-start spec)
-                             uid (help/get-uuid)]
-                         (data/store-game uid game)
-                         {:uid uid :game (wrap-game game [])})
-                       {:error "No such level"}))))
+(defn game-start-res [level]
+  (if-let [spec ((keyword level) field-options)]
+    (let [game (game-start spec)
+          uuid (help/get-uuid)]
+      (data/store-game uuid game)
+      {:uid uuid})
+    {:error "No such level"}))
 
-(defroutes app
-  (POST "/move" [] (resource :available-media-types ["text/html"]
-                             :handle-ok  "Not implemented"))
-  (GET "/game-start/:level" [level] (game-start-res level))
-  (route/not-found "404"))
+(defn move-res [uuid move]
+  (if-let [initial-game (data/get-game uuid)]
+    (if (game-over? initial-game move)
+      {:game "over"}
+      (let [flipped (data/get-flipped uuid)
+            new-flipped (open-region initial-game move)
+            all-flipped (concat new-flipped flipped)]        
+        (data/set-flipped uuid all-flipped)
+        {:game (wrap-game initial-game all-flipped)}))))
+
+(def app
+  (->> (defroutes approutes
+         (POST "/move/:uuid" {{uuid :uuid :as params} :params}
+               (wrap-response (move-res uuid (json/read-str (get params "move")))))
+         
+         (GET "/game-start/:level" [level] (wrap-response (game-start-res level)))
+         (route/not-found "404"))
+       wrap-params))

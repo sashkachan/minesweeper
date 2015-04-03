@@ -135,3 +135,16 @@
       (is (= 58 (count opened5)))
       (is (= 8 (count opened6)))
       )))
+
+(deftest test-game-over-on-board
+  (testing "Game over returns true when all elements are open"))
+
+
+(deftest test-game-response
+  (testing "Response includes game object"))
+
+(deftest test-game-start-resource
+  (testing "Game start returns uid and game object"))
+
+(deftest test-make-move-resource
+  (testing ""))
