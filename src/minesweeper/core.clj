@@ -67,18 +67,21 @@
                                   (count))))))
      (throw (new IllegalArgumentException)))))
 
-(defn wrap-game [board flipped]
-  (map (fn [{dim :coord}]
-         (let [board-cell (get-cell board dim)
-               flipped (not (nil? (help/find-first #(= dim %) flipped)))
-               bomb (if flipped (:is-bomb board-cell) nil)
-               number (if flipped (:is-bomb board-cell) nil)]
-           (cell dim bomb number))) board))
+(defn wrap-game
+  ([board]
+   (wrap-game board (map #(:coord %) board)))
+  ([board flipped]
+   (map (fn [{dim :coord}]
+          (let [board-cell (get-cell board dim)
+                flipped (not (nil? (help/find-first #(= dim %) flipped)))
+                bomb (if flipped (:is-bomb board-cell) nil)
+                number (if flipped (:number board-cell) nil)]
+            (cell dim bomb number))) board)))
 
 (defn get-board-size [board]
   (let [coords (apply map vector (map #(:coord %) board))]
-    (println coords)
     (vector (inc (apply max (first coords))) (inc (apply max (second coords))))))
+
 
 (defn open-region
   ([game move]
@@ -112,24 +115,27 @@
     (let [game (game-start spec)
           uuid (help/get-uuid)]
       (data/store-game uuid game)
-      {:uid uuid
-       :field spec})
+      {:uid uuid :field spec})
     {:error "No such level"}))
 
 (defn move-res [uuid move]
   (if-let [initial-game (data/get-game uuid)]
     (if (game-over? initial-game move)
-      {:game "over"}
+      {:state "over"
+       :game (wrap-game initial-game )}
       (let [flipped (data/get-flipped uuid)
             new-flipped (open-region initial-game move)
-            all-flipped (concat new-flipped flipped)]        
+            all-flipped (concat new-flipped flipped)]
         (data/set-flipped uuid all-flipped)
         {:game (wrap-game initial-game all-flipped)}))))
 
 (def app
   (->> (defroutes approutes
          (POST "/move/:uuid" {{uuid :uuid :as params} :params}
-               (wrap-response (move-res uuid (json/read-str (get params "move")))))
+               (do
+                 (println (json/read-str (get params "move")))
+                 (println (get params "move"))
+                 (wrap-response (move-res uuid (json/read-str (get params "move"))))))
          
          (GET "/game-start/:level" [level] (wrap-response (game-start-res level)))
          (route/resources "/")

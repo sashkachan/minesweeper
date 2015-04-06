@@ -33,12 +33,19 @@ var Row = React.createClass({
 });
 
 var Cell = React.createClass({
-    getInitialState: function () {
-	return {flipped: false, isBomb: null, num: null}
-    },
     render: function () {
+	var char;
+	handler = this.props.clickHandler;
+	if (this.props.data.flipped == false) {
+	    char = "_";
+	} else if (this.props.data.isBomb == false) {
+	    char = this.props.data.num.toString();
+	    handler = null;
+	} else {
+	    char = "x";
+	}
 	return(
-		<span className="cell">x</span>
+		<span className="cell" onClick={handler}>{char}</span>
 	);
     }
 });
@@ -46,23 +53,9 @@ var Cell = React.createClass({
 
 var Field = React.createClass({
     getInitialState: function () {
-	return {rows: [] };
+	return {rows: [], uid: null };
     },
 
-    loadGame: function (data) {
-	var field = data.result.field.size;
-	var rows = [];
-	for (var i = 0; i < field[0]; i++) {
-	    var cells = [];
-	    for (var j = 0; j < field[1]; j++) {
-		var cellId = i + "" + j;
-	    	cells.push(<Cell key={cellId} data={cellId} />);
-	    }
-	    rows.push(<Row data={cells} />);
-	}
-	this.setState({rows: rows});
-    },
-    
     startGame: function (event) {
 	var gameLevel = $("#game_level").val();
 	var that = this;
@@ -72,15 +65,70 @@ var Field = React.createClass({
 	});
 	event.preventDefault();
     },
-    makeMove: function () {
-
+    
+    loadGame: function (data) {
+	var field = data.result.field.size;
+	var rows = [];
+	for (var i = 0; i < field[0]; i++) {
+	    var cells = [];
+	    for (var j = 0; j < field[1]; j++) {
+		var cellId = i + "." + j;
+	    	cells.push({cellId: cellId, isBomb:null, num: null, flipped: false});
+	    }
+	    rows.push(cells);
+	}
+	this.setState({rows: rows, uid: data.result.uid});
+    },
+    
+    makeMove: function (cellData, event) {
+	var cell = cellData.cellId.split(".").map(
+	    function (el) {
+		return parseInt(el);
+	    }
+	);
+	var that = this;
+	var makeMoveHandler = function (data) {
+	    var game = data.result.game;
+	    var rows = Array();
+	    for (var index in game) {
+		var cell = game[index];
+		var cellId = cell.coord[0] + "." + cell.coord[1];
+		var rowNum = cell.coord[0];
+		var cellNum = cell["number"];
+		if (rows[rowNum] == undefined) {
+		    rows[rowNum] = Array();
+		}
+		rows[rowNum].push({
+		    cellId: cellId,
+		    isBomb: cell["is-bomb"],
+		    flipped: (cellNum != null || (cell["is-bomb"] == true)),
+		    num: cellNum
+		});
+	    }
+	    that.setState({rows: rows, uid: that.state.uid});
+	};
+	
+	$.ajax("move/" + this.state.uid, {
+	    dataType: "json",
+	    method: "POST",
+	    data: {move: "[" + cell[0] + "," + cell[1] + "]"},
+	    success: makeMoveHandler
+	});
+	event.preventDefault();
     },
     render: function () {
-	console.log
+	var rows = this.state.rows.map(function(row) {
+	    var cells = row.map(function (cell) {
+		var clickHandler = this.makeMove.bind(this, cell);
+		return <Cell key={cell.cellId} data={cell} clickHandler={clickHandler}/>
+	    }, this);
+	    return <Row data={cells} />;
+	}, this);
+
 	return(
 	        <div>
 	        <ControlBar newGameHandler={this.startGame}/>
-		<div id="field">{this.state.rows}</div>
+		<div id="field">{rows}</div>
 		</div>
 	);
     }

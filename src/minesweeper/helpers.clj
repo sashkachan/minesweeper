@@ -4,7 +4,7 @@
   (first (filter f coll)))
 
 (defn in? [coll el]
-  (some? #(= % el) coll))
+  (some #(= % el) coll))
 
 (defn not-in? [coll el]
   (not (in? coll el)))
