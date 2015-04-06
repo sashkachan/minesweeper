@@ -132,11 +132,7 @@
 (def app
   (->> (defroutes approutes
          (POST "/move/:uuid" {{uuid :uuid :as params} :params}
-               (do
-                 (println (json/read-str (get params "move")))
-                 (println (get params "move"))
-                 (wrap-response (move-res uuid (json/read-str (get params "move"))))))
-         
+               (wrap-response (move-res uuid (json/read-str (get params "move")))))         
          (GET "/game-start/:level" [level] (wrap-response (game-start-res level)))
          (route/resources "/")
          (route/not-found "404"))

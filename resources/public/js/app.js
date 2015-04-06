@@ -33,11 +33,25 @@ var Row = React.createClass({
 });
 
 var Cell = React.createClass({
+    getInitialState: function () {
+	return {flagged:false}
+    },
+
+    handleContextClick: function (event) {
+	this.setState({flagged: !this.state.flagged});
+	event.preventDefault();
+    },
+    
     render: function () {
 	var char;
 	handler = this.props.clickHandler;
 	if (this.props.data.flipped == false) {
-	    char = "_";
+	    if (this.state.flagged) {
+		char = "b";
+		handler = null;
+	    } else {
+		char = "_";
+	    }
 	} else if (this.props.data.isBomb == false) {
 	    char = this.props.data.num.toString();
 	    handler = null;
@@ -45,7 +59,7 @@ var Cell = React.createClass({
 	    char = "x";
 	}
 	return(
-		<span className="cell" onClick={handler}>{char}</span>
+		<span className="cell" onClick={handler} onContextMenu={this.handleContextClick}>{char}</span>
 	);
     }
 });
