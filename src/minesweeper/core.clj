@@ -112,7 +112,8 @@
     (let [game (game-start spec)
           uuid (help/get-uuid)]
       (data/store-game uuid game)
-      {:uid uuid})
+      {:uid uuid
+       :field spec})
     {:error "No such level"}))
 
 (defn move-res [uuid move]

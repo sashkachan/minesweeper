@@ -1,7 +1,7 @@
 <!-- index.html -->
 <html>
 	<head>
-		<title>Hello React</title>
+		<title>Minesweeper</title>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.0/react.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.0/JSXTransformer.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
@@ -9,23 +9,17 @@
 	<body>
 		<style>
 		#field {
-			background: black;
+			border: 1px solid black;
 		}
 		.cell {
-			width: 10px;
-			height: 10px;
+			width: 5px;
+			height: 5px;
+		}
+		.row {
+			height: 5px;
 		}
 		</style>
-		<div>Level picker:</div>
-		<form name="level_picker">
-			<label>Easy</label>
-			<input type="radio" name="level" value="easy"/>
-			<label>Medium</label>
-			<input type="radio" name="level" value="medium"/>
-			<label>Hard</label>
-			<input type="radio" name="level" value="hard"/>
-		</form>
-					
+				
 		<div id="content"></div>
 		<script type="text/jsx">
 
