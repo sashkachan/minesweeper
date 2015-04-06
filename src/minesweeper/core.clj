@@ -6,7 +6,8 @@
             [clojure.string :as str]
             [clojure.data.json :as json]
             [minesweeper.data :as data]
-            [ring.middleware.params :refer [wrap-params]]))
+            [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.resource :refer [wrap-resource]]))
 
 ;; todo: create config
 (def field-options {:easy {:size [9 9] :bombs 10}
@@ -130,5 +131,6 @@
                (wrap-response (move-res uuid (json/read-str (get params "move")))))
          
          (GET "/game-start/:level" [level] (wrap-response (game-start-res level)))
+         (route/resources "/")
          (route/not-found "404"))
        wrap-params))
