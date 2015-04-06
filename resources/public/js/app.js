@@ -26,7 +26,6 @@ var NewGameForm = React.createClass({
 var Row = React.createClass({
     render: function () {
 	var children = this.props.data;
-	console.log(this.props.data);
 	return (
 	    <div>{children}</div>
 	);
@@ -34,9 +33,12 @@ var Row = React.createClass({
 });
 
 var Cell = React.createClass({
+    getInitialState: function () {
+	return {flipped: false, isBomb: null, num: null}
+    },
     render: function () {
 	return(
-		<span className="cell">{this.props.data}</span>
+		<span className="cell">x</span>
 	);
     }
 });
