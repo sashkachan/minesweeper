@@ -137,7 +137,12 @@
       )))
 
 (deftest test-game-over-on-board
-  (testing "Game over returns true when all elements are open"))
+  (testing "Game over returns true when all elements are open"
+    (let [flipped1 (mscore/open-region game1 [0 0])
+          flipped2 (mscore/open-region game1 [2 2])
+          flipped3 (mscore/open-region game1 [0 2])
+          all-flipped (concat flipped1 flipped2 flipped3)]
+      (is (= true (mscore/game-won? game1 all-flipped))))))
 
 
 (deftest test-game-response

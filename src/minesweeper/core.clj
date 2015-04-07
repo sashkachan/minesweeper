@@ -35,7 +35,18 @@
 (defn has-bomb? [board dim]
   (= true (:is-bomb (get-cell board dim))))
 
-(defn game-over?
+(def get-coords (partial map (fn [el] (:coord el))))
+
+(defn game-won? [board flipped]
+  (let [coords-of (fn [pred] (get-coords (filter pred board)))
+        mines (coords-of #(= true (:is-bomb %)))
+        not-mines (coords-of #(not (= true (:is-bomb %))))]
+    (if (and (empty? (filter (partial help/in? mines) flipped))
+             (= (count not-mines) (count flipped)))
+      true
+      false)))
+
+(defn game-lost?
   "Checks if the game is over one way or another"
   [game move]
   (when (or (has-bomb? game move)
@@ -120,13 +131,17 @@
 
 (defn move-res [uuid move]
   (if-let [initial-game (data/get-game uuid)]
-    (if (game-over? initial-game move)
-      {:state "over"
-       :game (wrap-game initial-game )}
-      (let [flipped (data/get-flipped uuid)
-            new-flipped (open-region initial-game move)
-            all-flipped (concat new-flipped flipped)]
-        (data/set-flipped uuid all-flipped)
+    (let [flipped (data/get-flipped uuid)
+          new-flipped (open-region initial-game move)
+          all-flipped (concat new-flipped flipped)
+          lost? (game-lost? initial-game move)
+          won? (game-won? initial-game all-flipped)]
+      (data/set-flipped uuid all-flipped)
+      (if (or lost? won?)
+        {:lost lost?
+         :won won?
+         :game (wrap-game initial-game)}
+        
         {:game (wrap-game initial-game all-flipped)}))))
 
 (def app
