@@ -43,12 +43,12 @@
 
 (defn game-lost?
   "Checks if the game is over one way or another"
-  [game move]
-  (when (or (has-bomb? game move)
-            (nil? (help/find-first #(nil? (:number %)) game)))
+  [board move]
+  (when (or (has-bomb? board move)
+            (nil? (help/find-first #(nil? (:number %)) board)))
     true))
 
-(defn attach-flipped-cells [game flipped]
+(defn attach-flipped-cells [board flipped]
   (map (fn [el] (assoc el :flipped (help/in? flipped el)))))
 
 (defn generate-minefield
@@ -90,12 +90,12 @@
 
 
 (defn open-region
-  ([game move]
-   (open-region [] [] game move))
-  ([aggr-opened unprocessed game move]
-   (let [is-zero-cell (fn [cell] (= 0 (:number (get-cell game cell))))
+  ([board move]
+   (open-region [] [] board move))
+  ([aggr-opened unprocessed board move]
+   (let [is-zero-cell (fn [cell] (= 0 (:number (get-cell board cell))))
          not-in-opened (partial filter (partial help/not-in? aggr-opened))
-         neighbours (not-in-opened (get-neighbours-wmax (get-board-size game) move))
+         neighbours (not-in-opened (get-neighbours-wmax (get-board-size board) move))
          new-unprocessed-zeroes (concat unprocessed
                                         (filter is-zero-cell neighbours))
          all-open-cells (concat (not-in-opened neighbours)
@@ -106,33 +106,33 @@
        :else (if (not (is-zero-cell move))
                (open-region aggr-opened
                             (rest unprocessed)
-                            game
+                            board
                             (first unprocessed))
                (open-region all-open-cells
                             (rest new-unprocessed-zeroes)
-                            game
+                            board
                             (first new-unprocessed-zeroes)))))))
 
 
 (defn game-start-res [level]
   (if-let [spec ((keyword level) field-options)]
-    (let [game (game-start spec)
+    (let [board (game-start spec)
           uuid (help/get-uuid)]
-      (data/store-game uuid game)
+      (data/store-game uuid board)
       {:uid uuid :field spec})
     {:error "No such level"}))
 
 (defn move-res [uuid move]
-  (if-let [initial-game (data/get-game uuid)]
+  (if-let [board (data/get-game uuid)]
     (let [flipped (data/get-flipped uuid)
-          new-flipped (open-region initial-game move)
+          new-flipped (open-region board move)
           all-flipped (concat new-flipped flipped)
-          lost? (game-lost? initial-game move)
-          won? (game-won? initial-game all-flipped)]
+          lost? (game-lost? board move)
+          won? (game-won? board all-flipped)]
       (data/set-flipped uuid all-flipped)
       (if (or lost? won?)
         {:lost lost?
          :won won?
-         :game (wrap-game initial-game)}
+         :game (wrap-game board)}
         
-        {:game (wrap-game initial-game all-flipped)}))))
+        {:game (wrap-game board all-flipped)}))))
