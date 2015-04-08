@@ -30,12 +30,13 @@
 (defn has-bomb? [board dim]
   (= true (:is-bomb (get-cell board dim))))
 
-(def get-coords (partial map (fn [el] (:coord el))))
+(def coords (partial map (fn [el] (:coord el))))
+(def coords-of (fn [board pred] (coords (filter pred board))))
 
 (defn game-won? [board flipped]
-  (let [coords-of (fn [pred] (get-coords (filter pred board)))
-        mines (coords-of #(= true (:is-bomb %)))
-        not-mines (coords-of #(not (= true (:is-bomb %))))]
+  (let [coords-of-board (partial coords-of board)
+        mines (coords-of-board #(= true (:is-bomb %)))
+        not-mines (coords-of-board #(not (= true (:is-bomb %))))]
     (if (and (empty? (filter (partial help/in? mines) flipped))
              (= (count not-mines) (count flipped)))
       true
