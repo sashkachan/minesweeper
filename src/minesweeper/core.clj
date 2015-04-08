@@ -1,13 +1,8 @@
 (ns minesweeper.core
-  (:require [compojure.core :refer :all]
-            [compojure.route :as route]
-            [taoensso.carmine :as car]
-            [minesweeper.helpers :as help]
+  (:require [minesweeper.helpers :as help]
             [clojure.string :as str]
             [clojure.data.json :as json]
-            [minesweeper.data :as data]
-            [ring.middleware.params :refer [wrap-params]]
-            [ring.middleware.resource :refer [wrap-resource]]))
+            [minesweeper.data :as data]))
 
 ;; todo: create config
 (def field-options {:easy {:size [9 9] :bombs 10}
@@ -118,8 +113,6 @@
                             game
                             (first new-unprocessed-zeroes)))))))
 
-(defn wrap-response [body]
-  (json/write-str {:result body}))
 
 (defn game-start-res [level]
   (if-let [spec ((keyword level) field-options)]
@@ -143,12 +136,3 @@
          :game (wrap-game initial-game)}
         
         {:game (wrap-game initial-game all-flipped)}))))
-
-(def app
-  (->> (defroutes approutes
-         (POST "/move/:uuid" {{uuid :uuid :as params} :params}
-               (wrap-response (move-res uuid (json/read-str (get params "move")))))         
-         (GET "/game-start/:level" [level] (wrap-response (game-start-res level)))
-         (route/resources "/")
-         (route/not-found "404"))
-       wrap-params))
