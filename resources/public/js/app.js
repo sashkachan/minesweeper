@@ -24,8 +24,38 @@ var NewGameForm = React.createClass({
 });
 
 var Row = React.createClass({
+    getInitialState: function () {
+	return {flaggedCells: []};
+    },
+
+    isFlaggedCell: function (cellId) {
+	if (this.state.flaggedCells.indexOf(cellId) > -1) {
+	    return true;
+	}
+	return false;
+    },
+
+    newGameHandler: function () {
+	this.setState({flaggedCells: []});
+    },
+    
+    handleContextClick: function (cellId, event) {
+	var newFlaggedCells = this.state.flaggedCells;
+	if (this.isFlaggedCell(cellId)) {
+	    newFlaggedCells = newFlaggedCells.filter(function (elCellId) { return elCellId != cellId; });
+	} else {
+	    newFlaggedCells.push(cellId);
+	}
+	this.setState({flaggedCells: newFlaggedCells});
+	event.preventDefault();
+    },
     render: function () {
-	var children = this.props.data;
+	var children = this.props.data.map(function (cell) {
+	    var data = cell.data;
+	    var flaggedCell = this.isFlaggedCell(data.cellId);
+	    var contextHandler = this.handleContextClick.bind(this, data.cellId);
+	    return <Cell key={data.cellId} data={data} clickHandler={cell.clickHandler} contextHandler={contextHandler} flagged={flaggedCell}/>
+	}.bind(this));
 	return (
 	    <div>{children}</div>
 	);
@@ -33,20 +63,11 @@ var Row = React.createClass({
 });
 
 var Cell = React.createClass({
-    getInitialState: function () {
-	return {flagged:false}
-    },
-
-    handleContextClick: function (event) {
-	this.setState({flagged: !this.state.flagged});
-	event.preventDefault();
-    },
-    
     render: function () {
 	var char;
 	handler = this.props.clickHandler;
 	if (this.props.data.flipped == false) {
-	    if (this.state.flagged) {
+	    if (this.props.flagged) {
 		char = "b";
 		handler = null;
 	    } else {
@@ -59,7 +80,7 @@ var Cell = React.createClass({
 	    char = "x";
 	}
 	return(
-		<span className="cell" onClick={handler} onContextMenu={this.handleContextClick}>{char}</span>
+		<span className="cell" onClick={handler} onContextMenu={this.props.contextHandler}>{char}</span>
 	);
     }
 });
@@ -67,7 +88,7 @@ var Cell = React.createClass({
 
 var Field = React.createClass({
     getInitialState: function () {
-	return {rows: [], uid: null };
+	return {rows: [], uid: null, newGame: true };
     },
 
     startGame: function (event) {
@@ -91,6 +112,7 @@ var Field = React.createClass({
 	    }
 	    rows.push(cells);
 	}
+
 	this.setState({rows: rows, uid: data.result.uid});
     },
     
@@ -100,7 +122,6 @@ var Field = React.createClass({
 		return parseInt(el);
 	    }
 	);
-	var that = this;
 	var makeMoveHandler = function (data) {
 	    var game = data.result.game;
 	    var rows = Array();
@@ -119,8 +140,8 @@ var Field = React.createClass({
 		    num: cellNum
 		});
 	    }
-	    that.setState({rows: rows, uid: that.state.uid});
-	};
+	    this.setState({rows: rows, uid: this.state.uid});
+	}.bind(this);
 	
 	$.ajax("move/" + this.state.uid, {
 	    dataType: "json",
@@ -130,11 +151,12 @@ var Field = React.createClass({
 	});
 	event.preventDefault();
     },
+    
     render: function () {
 	var rows = this.state.rows.map(function(row) {
 	    var cells = row.map(function (cell) {
 		var clickHandler = this.makeMove.bind(this, cell);
-		return <Cell key={cell.cellId} data={cell} clickHandler={clickHandler}/>
+		return {data: cell, clickHandler: clickHandler}
 	    }, this);
 	    return <Row data={cells} />;
 	}, this);
@@ -142,7 +164,7 @@ var Field = React.createClass({
 	return(
 	        <div>
 	        <ControlBar newGameHandler={this.startGame}/>
-		<div id="field">{rows}</div>
+		<div key={this.state.uid} id="field">{rows}</div>
 		</div>
 	);
     }
